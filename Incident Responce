@@ -1,1 +1,191 @@
+# Hands-On Network Forensics Labs: Wireshark for Incident Response
+
+## Lab Overview
+This guide walks through practical steps for conducting network forensics using tools like **Wireshark**, **Zeek**, and **Volatility**. It's designed for incident responders investigating suspicious network behavior and conducting memory forensics to analyze malware or data breaches.
+
+We’ll cover the following:
+- Analyzing PCAP files with **Wireshark**
+- Extracting artifacts from **Zeek** logs
+- Memory forensics with **Volatility**
+- Investigating malware using **sandboxing** and **decompilers**
+- Handling live incident response scenarios
+
+### Network Forensics: Analyzing PCAP Files with Wireshark
+
+**1. Explore the contents of your directory**
+```bash
+ls
+```
+- **What it does**: Lists all files in your current directory, showing available PCAP files or logs for analysis.
+
+**2. Analyze Zeek logs**
+```bash
+zeek-cut < conn.log id.orig_h id.orig_p id.resp_p duration proto history | grep tcp
+```
+- **What it does**: Extracts specific fields from Zeek logs, filtering for TCP connections. This helps in isolating relevant traffic for further analysis.
+
+**3. Open the PCAP file in Wireshark**
+```bash
+wireshark project1.pcap
+```
+- **What it does**: Opens the specified `.pcap` file for detailed packet analysis.
+
+### Investigating TCP Handshake and Packets
+
+**4. Filter packets for specific IP addresses**
+```bash
+ip.addr == <source_ip> && ip.addr == <destination_ip>
+```
+- **What it does**: Filters traffic between two IP addresses, narrowing down the analysis to TCP handshakes.
+
+**5. Follow a TCP stream in Wireshark**
+- **What it does**: By following the TCP stream, you can view all data exchanged between two hosts. Look for payloads indicating exploits, such as a **Java exploit**. Example: If a malicious payload was embedded in a downloaded folder.
+
+**6. Investigate potential DNS poisoning**
+```bash
+tcp contains "facebook.com"
+```
+- **What it does**: Looks for packets containing specific strings, such as suspicious DNS queries (e.g., if `facebook.com` appears in a business environment). Investigate if responses indicate DNS poisoning.
+
+### Extracting Files from Network Traffic
+
+**7. Export objects from HTTP traffic**
+- **What it does**: In Wireshark, go to **File > Export Objects > HTTP** to extract files that were transferred over the network, such as a **Java exploit**.
+
+Once exported:
+```bash
+ls
+```
+- **What it does**: Verify the exported file and inspect its contents.
+
+### Analyzing Java Exploits
+
+**8. Analyze Java files using JD-GUI**
+- **What it does**: If the suspect file is a **Java file** (e.g., `Exploit.jar`), decompile it using **JD-GUI** to inspect the code. This helps to determine what the malware does.
+
+- **Sandbox testing**: Set up a sandbox to safely run the file and observe its behavior. Use a tool like **VirusTotal** for basic analysis, but note that it might expose the file publicly.
+
+---
+
+### Memory Forensics Lab: Extracting and Analyzing Memory Dumps
+
+#### Step 1: Extracting a Memory Dump
+
+**1. Use `mrc` to extract memory**
+- **What it does**: Run the memory acquisition tool to extract a dump of the suspect machine's memory. Save it as `suspectmachine.raw`.
+
+**2. Transfer the memory dump to your analysis machine**
+```bash
+ftp <ip_address>
+bin
+put suspectmachine.raw
+```
+- **What it does**: Transfers the memory dump to your forensic workstation (e.g., a Kali Linux machine).
+
+#### Step 2: Analyzing the Memory Dump with Volatility
+
+**3. Identify the operating system profile**
+```bash
+volatility -f suspectmachine.raw imageinfo
+```
+- **What it does**: Scans the memory dump and suggests the operating system profile, which is critical for further analysis.
+
+**4. List active processes**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> pslist
+```
+- **What it does**: Lists all processes that were running on the machine, allowing you to identify suspicious activity.
+
+**5. Investigate memory strings**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> strings
+```
+- **What it does**: Searches for ASCII and Unicode strings in the memory, useful for finding clues like command execution, URLs, and potential malware signatures.
+
+#### Step 3: Extracting Artifacts and Indicators of Compromise (IoCs)
+
+**6. Examine running processes and their parent-child relationships**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> pstree
+```
+- **What it does**: Displays processes in a tree structure, helping you identify abnormal parent-child relationships, such as a legitimate process spawning malware.
+
+**7. Capture command history**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> cmdscan
+```
+- **What it does**: Shows previously executed commands, which could reveal malicious activity.
+
+**8. Review console output**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> consoles
+```
+- **What it does**: Displays console history and results of commands executed on the system.
+
+**9. Examine network connections**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> netscan
+```
+- **What it does**: Lists open network sockets, connections, and related processes.
+
+**10. Extract password hashes**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> hashdump
+```
+- **What it does**: Dumps password hashes from memory, potentially useful for further analysis or testing passwords.
+
+**11. Check application execution history**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> shimcache
+```
+- **What it does**: Identifies recently executed applications, even if they are no longer running.
+
+---
+
+### Live Incident Response: Containment and Eradication
+
+#### Step 1: Live Detection and Investigation
+
+**1. Perform live memory capture**
+```bash
+mrc --capture <output_location>
+```
+- **What it does**: Capture memory in real-time if an incident is ongoing, providing insight into what the attacker is doing before they can clean up evidence.
+
+**2. Gather basic system information**
+```bash
+netstat -an >> filename.txt && arp -n >> filename.txt && sc query >> filename.txt && systeminfo >> filename.txt
+```
+- **What it does**: Captures essential system information like network connections, ARP cache, running services, and system details.
+
+#### Step 2: Incident Containment and Analysis
+
+**3. Run Volatility on the memory dump**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> connscan
+```
+- **What it does**: Scans for network connections within the memory dump, which may reveal hidden or malicious activity.
+
+**4. Investigate suspicious connections**
+```bash
+volatility -f suspectmachine.raw --profile=<OS_Profile> pstree
+```
+- **What it does**: Identifies abnormal processes and connections tied to suspicious activity, helping you contain the incident.
+
+#### Step 3: Eradication and Remediation
+
+**5. Vulnerability validation using Metasploit**
+- **What it does**: After identifying the root cause, use **Metasploit** to validate and replicate the vulnerability. Ensure patch management fixes the issue before redeployment.
+
+---
+
+### Conclusion: Key Steps in Incident Response
+
+By following this guide, you'll learn how to:
+- Use Wireshark for packet-level analysis and file extraction
+- Analyze memory dumps with Volatility to gather forensic evidence
+- Contain and eradicate malicious activity during live incidents
+- Conduct post-incident vulnerability validation
+
+Each step is essential in detecting, investigating, and eradicating malware or compromised systems while ensuring proper documentation for remediation and further preventive actions.
 

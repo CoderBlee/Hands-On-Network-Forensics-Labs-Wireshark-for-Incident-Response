@@ -1,0 +1,13 @@
+# Wireshark Filters for Incident Response
+
+# Filter by IP address
+ip.addr == 192.168.1.100
+
+# Filter for TCP traffic
+tcp
+
+# Filter for specific TCP ports
+tcp.port == 80
+
+# Filter by DNS traffic
+dns

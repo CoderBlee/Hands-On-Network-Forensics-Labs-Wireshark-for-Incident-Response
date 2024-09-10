@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireshark Incident Response Guide</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Optional CSS file -->
+</head>
+<body>
+    <h1>Wireshark Incident Response Guide</h1>
+
+    <h2>Filter by IP Address</h2>
+    <p>Use the following filter to show only traffic to or from IP address <code>192.168.1.100</code>:</p>
+    <pre>ip.addr == 192.168.1.100</pre>
+
+    <h2>Following a TCP Stream</h2>
+    <p>To follow a specific TCP stream in Wireshark:</p>
+    <ol>
+        <li>Right-click on any TCP packet.</li>
+        <li>Select <strong>Follow</strong> > <strong>TCP Stream</strong>.</li>
+    </ol>
+
+    <h2>Other Common Filters</h2>
+    <ul>
+        <li>TCP traffic: <code>tcp</code></li>
+        <li>DNS traffic: <code>dns</code></li>
+        <li>HTTP traffic: <code>http</code></li>
+    </ul>
+</body>
+</html>
